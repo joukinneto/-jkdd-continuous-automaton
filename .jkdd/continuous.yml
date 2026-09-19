@@ -1,0 +1,64 @@
+version: 1
+
+system:
+  name: jkdd-continuous
+  mode: multi-agent
+  provider_strategy: fallback
+
+context:
+  strategy: minimal
+  prefer_git_diff: true
+  prefer_search: true
+  include_full_history: false
+  resend_unchanged_files: false
+  max_files: 8
+  max_lines_per_file: 500
+  expand_on_failure: true
+
+agents:
+  search:
+    type: local
+    llm_required: false
+
+  git:
+    type: local
+    llm_required: false
+
+  qa:
+    type: local
+    llm_required: false
+
+  coding:
+    type: llm
+    priority:
+      - openai
+      - gemini
+      - claude
+
+  architecture:
+    type: llm
+    priority:
+      - openai
+      - claude
+      - gemini
+
+providers:
+  openai:
+    enabled: true
+
+  gemini:
+    enabled: true
+
+  claude:
+    enabled: true
+    role: escalation
+
+token_budget:
+  mode: conservative
+  full_repo_context: false
+  expensive_model_default: false
+
+projects:
+  jogos_daniel:
+    path: C:\jogos-daniel
+    enabled: true
