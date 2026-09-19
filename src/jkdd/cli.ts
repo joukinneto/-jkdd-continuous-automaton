@@ -5,28 +5,80 @@ import { defaultTokenBudget } from "./token-budget.js";
 import { getFallbackProviders } from "./providers.js";
 import { findProject } from "./projects.js";
 import { scanWorkspace } from "./workspace.js";
+import {
+  printDoctor,
+  printStatus,
+  recoverProject,
+  syncProjects,
+} from "./commands.js";
 
-const task = process.argv.slice(2).join(" ").trim();
+const args = process.argv.slice(2);
+const command = (args[0] ?? "").toLowerCase();
 
-if (!task) {
+function finish(ok: boolean, message: string): never {
+  console.log("");
+  console.log(message);
+  process.exit(ok ? 0 : 1);
+}
+
+if (!command) {
   console.log(`
 JKDD Continuous
 
-Uso:
-  jkdd "sua tarefa"
+Comandos:
+  jkdd doctor [projeto]
+  jkdd status [projeto]
+  jkdd sync [projeto]
+  jkdd recover <projeto>
+  jkdd run <projeto>
+  jkdd "sua tarefa para um projeto"
 
-Exemplo:
+Exemplos:
+  jkdd doctor
+  jkdd status jogos-daniel
+  jkdd sync jogos-daniel
+  jkdd recover jogos-daniel
+  jkdd run jogos-daniel
   jkdd "melhore a tela inicial do jogos-daniel"
 `);
   process.exit(0);
+}
+
+if (command === "doctor") {
+  const result = printDoctor(args[1]);
+  finish(result.ok, result.message);
+}
+
+if (command === "status") {
+  const result = printStatus(args[1]);
+  finish(result.ok, result.message);
+}
+
+if (command === "sync") {
+  const result = syncProjects(args[1]);
+  finish(result.ok, result.message);
+}
+
+if (command === "recover") {
+  if (!args[1]) finish(false, "Usage: jkdd recover <project>");
+  const result = recoverProject(args[1]);
+  finish(result.ok, result.message);
+}
+
+const task =
+  command === "run"
+    ? `run ${args.slice(1).join(" ")}`.trim()
+    : args.join(" ").trim();
+
+if (command === "run" && args.length < 2) {
+  finish(false, "Usage: jkdd run <project>");
 }
 
 const decision = routeTask(task);
 const project = findProject(task);
 
 if (!project) {
-  console.error("Project not found in JKDD registry.");
-  process.exit(1);
+  finish(false, "Project not found in JKDD registry.");
 }
 
 const workspace = scanWorkspace(project.path, 20);
@@ -44,7 +96,6 @@ console.log(`Reason:   ${decision.reason}`);
 
 console.log("");
 console.log("Workspace files:");
-
 for (const file of workspace.files) {
   console.log(`  - ${file}`);
 }
@@ -62,10 +113,21 @@ if (decision.provider !== "local") {
   console.log("");
   console.log(
     "Fallback providers:",
-    fallback.map((p) => p.name).join(" -> ")
+    fallback.map((provider) => provider.name).join(" -> ")
   );
 }
 
 console.log("");
+
+const sourceFiles = workspace.files.filter((file) =>
+  /\.(html|css|js|ts|tsx|jsx|dart|py)$/i.test(file)
+);
+
+if (sourceFiles.length === 0) {
+  console.log("Execution blocked: no application source files were found.");
+  console.log(`Run: jkdd recover ${project.key}`);
+  process.exit(2);
+}
+
 console.log("Status: routing decision generated.");
-console.log("Execution provider integration is the next layer.");
+console.log("Provider execution integration is not enabled yet.");
