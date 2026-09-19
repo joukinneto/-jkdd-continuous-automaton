@@ -11,6 +11,7 @@ import {
   recoverProject,
   syncProjects,
 } from "./commands.js";
+import { installAgent, printAgents } from "./agents.js";
 
 const args = process.argv.slice(2);
 const command = (args[0] ?? "").toLowerCase();
@@ -30,6 +31,9 @@ Comandos:
   jkdd status [projeto]
   jkdd sync [projeto]
   jkdd recover <projeto>
+  jkdd agents
+  jkdd agents install codex
+  jkdd agents install gemini
   jkdd run <projeto>
   jkdd "sua tarefa para um projeto"
 
@@ -38,6 +42,8 @@ Exemplos:
   jkdd status jogos-daniel
   jkdd sync jogos-daniel
   jkdd recover jogos-daniel
+  jkdd agents
+  jkdd agents install codex
   jkdd run jogos-daniel
   jkdd "melhore a tela inicial do jogos-daniel"
 `);
@@ -63,6 +69,21 @@ if (command === "recover") {
   if (!args[1]) finish(false, "Usage: jkdd recover <project>");
   const result = recoverProject(args[1]);
   finish(result.ok, result.message);
+}
+
+if (command === "agents") {
+  if (!args[1]) {
+    const ok = printAgents();
+    finish(ok, ok ? "At least one agent CLI is ready." : "No agent CLI is currently available.");
+  }
+
+  if (args[1].toLowerCase() === "install") {
+    if (!args[2]) finish(false, "Usage: jkdd agents install <codex|gemini>");
+    const ok = installAgent(args[2]);
+    finish(ok, ok ? "Agent installation complete." : "Agent installation failed.");
+  }
+
+  finish(false, "Usage: jkdd agents [install <codex|gemini>]");
 }
 
 const task =
