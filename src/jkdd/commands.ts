@@ -13,7 +13,7 @@ function run(command: string, args: string[], cwd?: string) {
   return spawnSync(command, args, {
     cwd,
     encoding: "utf-8",
-    shell: false,
+    shell: process.platform === "win32",
   });
 }
 
