@@ -197,7 +197,7 @@ const sourceFiles = workspace.files.filter((file) =>
 
 if (sourceFiles.length === 0) {
   console.log("Execution blocked: no application source files were found.");
-  console.log(`Run: jkdd recover ${project.key}`);
+  console.log(`Run: jkdd rebuild ${project.key}`);
   process.exit(2);
 }
 
