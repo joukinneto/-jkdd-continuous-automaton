@@ -12,12 +12,18 @@ export interface ExecutionResult {
   stderr: string;
 }
 
-function run(command: string, args: string[], cwd: string) {
+function run(
+  command: string,
+  args: string[],
+  cwd: string,
+  input?: string
+) {
   return spawnSync(command, args, {
     cwd,
     encoding: "utf-8",
     shell: process.platform === "win32",
     stdio: "pipe",
+    input,
     maxBuffer: 10 * 1024 * 1024,
   });
 }
@@ -79,8 +85,9 @@ export function executeWithCodex(project: JKDDProject, task: string): ExecutionR
   const prompt = buildContext(project, task);
   const result = run(
     "codex",
-    ["exec", "--sandbox", "workspace-write", prompt],
-    project.path
+    ["exec", "--sandbox", "workspace-write", "-"],
+    project.path,
+    prompt
   );
 
   return {
