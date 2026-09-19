@@ -12,6 +12,12 @@ import {
   syncProjects,
 } from "./commands.js";
 import { installAgent, printAgents } from "./agents.js";
+import {
+  executeWithCodex,
+  printExecutionResult,
+  reviewWithClaude,
+  reviewWithGemini,
+} from "./executor.js";
 
 const args = process.argv.slice(2);
 const command = (args[0] ?? "").toLowerCase();
@@ -31,6 +37,7 @@ Comandos:
   jkdd status [projeto]
   jkdd sync [projeto]
   jkdd recover <projeto>
+  jkdd rebuild <projeto>
   jkdd agents
   jkdd agents install codex
   jkdd agents install gemini
@@ -42,6 +49,7 @@ Exemplos:
   jkdd status jogos-daniel
   jkdd sync jogos-daniel
   jkdd recover jogos-daniel
+  jkdd rebuild jogos-daniel
   jkdd agents
   jkdd agents install codex
   jkdd run jogos-daniel
@@ -69,6 +77,49 @@ if (command === "recover") {
   if (!args[1]) finish(false, "Usage: jkdd recover <project>");
   const result = recoverProject(args[1]);
   finish(result.ok, result.message);
+}
+
+if (command === "rebuild") {
+  if (!args[1]) finish(false, "Usage: jkdd rebuild <project>");
+
+  const project = findProject(args[1]);
+  if (!project) finish(false, `Project not found: ${args[1]}`);
+
+  const workspace = scanWorkspace(project.path, 200);
+  const sourceFiles = workspace.files.filter((file) =>
+    /\.(html|css|js|ts|tsx|jsx|dart|py)$/i.test(file)
+  );
+
+  if (sourceFiles.length > 0) {
+    finish(
+      false,
+      "Rebuild blocked because application source files already exist. Use a normal task instead."
+    );
+  }
+
+  console.log("");
+  console.log("========================================");
+  console.log(" JKDD CONTINUOUS — REBUILD");
+  console.log("========================================");
+  console.log(`Project: ${project.name}`);
+  console.log("Primary agent: Codex");
+  console.log("Mode: workspace-write sandbox");
+  console.log("");
+
+  const result = executeWithCodex(
+    project,
+    [
+      "Rebuild the missing application source for this project using README.md, AGENTS.md,",
+      ".jkdd/repository-map.md and .jkdd/continuous.yml as the authoritative local specification.",
+      "Create a coherent minimal working implementation without inventing external secrets.",
+      "Preserve the documented product concept, games, languages, and zero-build static architecture.",
+      "Do not commit, push, publish, or change external infrastructure.",
+      "If the README references multiple game pages, restore them as separate static pages.",
+    ].join(" ")
+  );
+
+  printExecutionResult(result);
+  finish(result.ok, result.ok ? "Rebuild execution completed." : "Rebuild execution failed.");
 }
 
 if (command === "agents") {
@@ -151,4 +202,24 @@ if (sourceFiles.length === 0) {
 }
 
 console.log("Status: routing decision generated.");
-console.log("Provider execution integration is not enabled yet.");
+console.log("Executing primary coding agent...");
+
+const execution = executeWithCodex(project, task);
+printExecutionResult(execution);
+
+if (execution.ok) {
+  process.exit(0);
+}
+
+console.log("");
+console.log("Codex execution failed. Requesting read-only fallback reviews...");
+
+const geminiReview = reviewWithGemini(project, task);
+printExecutionResult(geminiReview);
+
+if (!geminiReview.ok) {
+  const claudeReview = reviewWithClaude(project, task);
+  printExecutionResult(claudeReview);
+}
+
+process.exit(1);
