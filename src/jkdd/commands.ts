@@ -44,6 +44,16 @@ export function printDoctor(projectName?: string): CommandResult {
   console.log(`Git:   ${git.status === 0 ? git.stdout.trim() : "NOT FOUND"}`);
   console.log(`pnpm:  ${pnpm.status === 0 ? pnpm.stdout.trim() : "NOT FOUND"}`);
 
+  const codex = run("codex", ["--version"]);
+  const gemini = run("gemini", ["--version"]);
+  const claude = run("claude", ["--version"]);
+
+  console.log("");
+  console.log("Agent CLIs:");
+  console.log(`  Codex:  ${codex.status === 0 ? codex.stdout.trim() || "AVAILABLE" : "NOT FOUND"}`);
+  console.log(`  Gemini: ${gemini.status === 0 ? gemini.stdout.trim() || "AVAILABLE" : "NOT FOUND"}`);
+  console.log(`  Claude: ${claude.status === 0 ? claude.stdout.trim() || "AVAILABLE" : "NOT FOUND"}`);
+
   const projects = projectName
     ? [resolveProject(projectName)].filter(Boolean) as JKDDProject[]
     : listProjects();
