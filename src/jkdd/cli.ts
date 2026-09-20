@@ -115,7 +115,8 @@ if (command === "rebuild") {
       "Preserve the documented product concept, games, languages, and zero-build static architecture.",
       "Do not commit, push, publish, or change external infrastructure.",
       "If the README references multiple game pages, restore them as separate static pages.",
-    ].join(" ")
+    ].join(" "),
+    { effort: "medium", includeReadme: true }
   );
 
   printExecutionResult(result);
@@ -204,7 +205,7 @@ if (sourceFiles.length === 0) {
 console.log("Status: routing decision generated.");
 console.log("Executing primary coding agent...");
 
-const execution = executeWithCodex(project, task);
+const execution = executeWithCodex(project, task, { effort: "low" });
 printExecutionResult(execution);
 
 if (execution.ok) {
