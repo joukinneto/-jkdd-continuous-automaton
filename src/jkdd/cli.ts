@@ -18,6 +18,7 @@ import {
   reviewWithClaude,
   reviewWithGemini,
 } from "./executor.js";
+import { checkOmniRoute } from "./omniroute.js";
 
 const args = process.argv.slice(2);
 const command = (args[0] ?? "").toLowerCase();
@@ -60,7 +61,17 @@ Exemplos:
 
 if (command === "doctor") {
   const result = printDoctor(args[1]);
-  finish(result.ok, result.message);
+  const omni = await checkOmniRoute();
+
+  console.log("");
+  console.log("OmniRoute:");
+  console.log(`  Base URL:   ${omni.baseURL}`);
+  console.log(`  Reachable:  ${omni.reachable ? "YES" : "NO"}`);
+  console.log(`  API key:    ${omni.configured ? "SET" : "NOT SET"}`);
+  console.log(`  Model:      ${omni.model ?? "NOT SET"}`);
+  if (omni.error) console.log(`  Detail:     ${omni.error}`);
+
+  finish(result.ok && omni.reachable, result.ok && omni.reachable ? "Environment ready." : "One or more checks need attention.");
 }
 
 if (command === "status") {
