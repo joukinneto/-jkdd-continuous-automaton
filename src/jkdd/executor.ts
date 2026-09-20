@@ -40,13 +40,17 @@ function readText(filePath: string, maxLines = 500): string {
   }
 }
 
-function buildContext(project: JKDDProject, task: string): string {
+function buildContext(
+  project: JKDDProject,
+  task: string,
+  includeReadme = false
+): string {
   const workspace = scanWorkspace(project.path, 50);
   const preferred = [
     "AGENTS.md",
     ".jkdd/continuous.yml",
     ".jkdd/repository-map.md",
-    "README.md",
+    ...(includeReadme ? ["README.md"] : []),
   ];
 
   const contextParts: string[] = [];
@@ -81,11 +85,26 @@ function buildContext(project: JKDDProject, task: string): string {
   ].join("\n");
 }
 
-export function executeWithCodex(project: JKDDProject, task: string): ExecutionResult {
-  const prompt = buildContext(project, task);
+export function executeWithCodex(
+  project: JKDDProject,
+  task: string,
+  options: {
+    effort?: "minimal" | "low" | "medium" | "high";
+    includeReadme?: boolean;
+  } = {}
+): ExecutionResult {
+  const effort = options.effort ?? "low";
+  const prompt = buildContext(project, task, options.includeReadme ?? false);
   const result = run(
     "codex",
-    ["exec", "--sandbox", "workspace-write", "-"],
+    [
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "--config",
+      `model_reasoning_effort="${effort}"`,
+      "-",
+    ],
     project.path,
     prompt
   );
