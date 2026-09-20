@@ -18,7 +18,7 @@ import {
   reviewWithClaude,
   reviewWithGemini,
 } from "./executor.js";
-import { checkOmniRoute } from "./omniroute.js";
+import { checkOmniRoute, setupOmniRouteInteractive } from "./omniroute.js";
 
 const args = process.argv.slice(2);
 const command = (args[0] ?? "").toLowerCase();
@@ -35,6 +35,8 @@ JKDD Continuous
 
 Comandos:
   jkdd doctor [projeto]
+  jkdd omniroute
+  jkdd omniroute setup
   jkdd status [projeto]
   jkdd sync [projeto]
   jkdd recover <projeto>
@@ -72,6 +74,25 @@ if (command === "doctor") {
   if (omni.error) console.log(`  Detail:     ${omni.error}`);
 
   finish(result.ok && omni.reachable, result.ok && omni.reachable ? "Environment ready." : "One or more checks need attention.");
+}
+
+if (command === "omniroute") {
+  if ((args[1] ?? "").toLowerCase() === "setup") {
+    const ok = await setupOmniRouteInteractive();
+    finish(ok, ok ? "OmniRoute setup complete." : "OmniRoute setup failed.");
+  }
+
+  const omni = await checkOmniRoute();
+  console.log("");
+  console.log("========================================");
+  console.log(" JKDD CONTINUOUS — OMNIROUTE");
+  console.log("========================================");
+  console.log(`Base URL:   ${omni.baseURL}`);
+  console.log(`Reachable:  ${omni.reachable ? "YES" : "NO"}`);
+  console.log(`API key:    ${omni.configured ? "SET" : "NOT SET"}`);
+  console.log(`Model:      ${omni.model ?? "NOT SET"}`);
+  if (omni.error) console.log(`Detail:     ${omni.error}`);
+  finish(omni.reachable, omni.reachable ? "OmniRoute reachable." : "OmniRoute unavailable.");
 }
 
 if (command === "status") {
