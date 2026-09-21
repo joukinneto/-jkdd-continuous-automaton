@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { JKDDProject, listProjects } from "./projects.js";
 import { scanWorkspace } from "./workspace.js";
+import { runCommand } from "./process.js";
 
 export interface CommandResult {
   ok: boolean;
@@ -10,11 +10,7 @@ export interface CommandResult {
 }
 
 function run(command: string, args: string[], cwd?: string) {
-  return spawnSync(command, args, {
-    cwd,
-    encoding: "utf-8",
-    shell: process.platform === "win32",
-  });
+  return runCommand(command, args, { cwd });
 }
 
 function resolveProject(name?: string): JKDDProject | null {
