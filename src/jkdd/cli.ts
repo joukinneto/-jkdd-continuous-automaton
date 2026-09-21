@@ -19,6 +19,7 @@ import {
   reviewWithGemini,
 } from "./executor.js";
 import { checkOmniRoute, setupOmniRouteInteractive } from "./omniroute.js";
+import { printOfficeStatus, startOffice, stopOffice } from "./office.js";
 
 const args = process.argv.slice(2);
 const command = (args[0] ?? "").toLowerCase();
@@ -37,6 +38,9 @@ Comandos:
   jkdd doctor [projeto]
   jkdd omniroute
   jkdd omniroute setup
+  jkdd office start [projeto]
+  jkdd office status
+  jkdd office stop
   jkdd status [projeto]
   jkdd sync [projeto]
   jkdd recover <projeto>
@@ -93,6 +97,27 @@ if (command === "omniroute") {
   console.log(`Model:      ${omni.model ?? "NOT SET"}`);
   if (omni.error) console.log(`Detail:     ${omni.error}`);
   finish(omni.reachable, omni.reachable ? "OmniRoute reachable." : "OmniRoute unavailable.");
+}
+
+if (command === "office") {
+  const action = (args[1] ?? "status").toLowerCase();
+
+  if (action === "start") {
+    const result = startOffice(args[2]);
+    finish(result.ok, result.message);
+  }
+
+  if (action === "status") {
+    const result = printOfficeStatus();
+    finish(result.ok, result.message);
+  }
+
+  if (action === "stop") {
+    const result = stopOffice();
+    finish(result.ok, result.message);
+  }
+
+  finish(false, "Usage: jkdd office <start [project]|status|stop>");
 }
 
 if (command === "status") {
