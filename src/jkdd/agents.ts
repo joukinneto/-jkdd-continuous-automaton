@@ -1,5 +1,5 @@
-import { spawnSync } from "node:child_process";
 
+import { runCommand } from "./process.js";
 export interface AgentCliStatus {
   name: "codex" | "gemini" | "claude";
   command: string;
@@ -8,10 +8,7 @@ export interface AgentCliStatus {
 }
 
 function run(command: string, args: string[] = []) {
-  return spawnSync(command, args, {
-    encoding: "utf-8",
-    shell: process.platform === "win32",
-  });
+  return runCommand(command, args);
 }
 
 function probe(name: AgentCliStatus["name"], command: string): AgentCliStatus {
