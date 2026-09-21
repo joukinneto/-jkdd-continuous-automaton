@@ -32,7 +32,13 @@ function safetyCheckpoint(projectPath: string): boolean {
   runCommand("git", ["add", "-A"], { cwd: projectPath });
   const commit = runCommand(
     "git",
-    ["commit", "-m", "chore(jkdd-office): safety checkpoint"],
+    [
+      "-c", "user.name=JKDD Continuous",
+      "-c", "user.email=jkdd@local.invalid",
+      "commit",
+      "-m",
+      "chore(jkdd-office): safety checkpoint",
+    ],
     { cwd: projectPath }
   );
 
@@ -83,7 +89,13 @@ function commitIteration(projectPath: string, cycle: number): boolean {
 
   const commit = runCommand(
     "git",
-    ["commit", "-m", `feat(jkdd-office): autonomous iteration ${cycle}`],
+    [
+      "-c", "user.name=JKDD Continuous",
+      "-c", "user.email=jkdd@local.invalid",
+      "commit",
+      "-m",
+      `feat(jkdd-office): autonomous iteration ${cycle}`,
+    ],
     { cwd: projectPath }
   );
 
