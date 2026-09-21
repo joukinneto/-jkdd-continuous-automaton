@@ -1,6 +1,6 @@
 import fs from "node:fs";
+import { runCommand } from "./process.js";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import type { JKDDProject } from "./projects.js";
 import { scanWorkspace } from "./workspace.js";
 
@@ -18,11 +18,8 @@ function run(
   cwd: string,
   input?: string
 ) {
-  return spawnSync(command, args, {
+  return runCommand(command, args, {
     cwd,
-    encoding: "utf-8",
-    shell: process.platform === "win32",
-    stdio: "pipe",
     input,
     maxBuffer: 10 * 1024 * 1024,
   });
