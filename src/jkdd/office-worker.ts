@@ -22,27 +22,24 @@ function ensureBranch(projectPath: string): string {
   return result.stdout?.trim() ?? "";
 }
 
-function safetyCheckpoint(projectPath: string): boolean {
-  const dirty = gitStatus(projectPath);
-  if (!dirty) return true;
+function validateBaseline(projectPath: string): { ok: boolean; detail?: string } {
+  const checkUnstaged = runCommand("git", ["diff", "--check"], { cwd: projectPath });
+  if (checkUnstaged.status !== 0) {
+    return {
+      ok: false,
+      detail: (checkUnstaged.stderr || checkUnstaged.stdout || "git diff --check failed").trim(),
+    };
+  }
 
-  const check = runCommand("git", ["diff", "--check"], { cwd: projectPath });
-  if (check.status !== 0) return false;
+  const checkStaged = runCommand("git", ["diff", "--cached", "--check"], { cwd: projectPath });
+  if (checkStaged.status !== 0) {
+    return {
+      ok: false,
+      detail: (checkStaged.stderr || checkStaged.stdout || "git diff --cached --check failed").trim(),
+    };
+  }
 
-  runCommand("git", ["add", "-A"], { cwd: projectPath });
-  const commit = runCommand(
-    "git",
-    [
-      "-c", "user.name=JKDD Continuous",
-      "-c", "user.email=jkdd@local.invalid",
-      "commit",
-      "-m",
-      "chore(jkdd-office): safety checkpoint",
-    ],
-    { cwd: projectPath }
-  );
-
-  return commit.status === 0 || /nothing to commit/i.test(commit.stdout + commit.stderr);
+  return { ok: true };
 }
 
 async function chooseTask(projectName: string, projectPath: string): Promise<string> {
@@ -78,12 +75,20 @@ async function chooseTask(projectName: string, projectPath: string): Promise<str
   return "Continue the documented MVP by choosing and implementing one small unfinished roadmap item. Keep scope narrow, preserve existing behavior, validate locally, and do not publish or deploy.";
 }
 
-function commitIteration(projectPath: string, cycle: number): boolean {
+function commitIteration(
+  projectPath: string,
+  cycle: number
+): { ok: boolean; detail?: string } {
   const dirty = gitStatus(projectPath);
-  if (!dirty) return true;
+  if (!dirty) return { ok: true };
 
   const check = runCommand("git", ["diff", "--check"], { cwd: projectPath });
-  if (check.status !== 0) return false;
+  if (check.status !== 0) {
+    return {
+      ok: false,
+      detail: (check.stderr || check.stdout || "git diff --check failed").trim(),
+    };
+  }
 
   runCommand("git", ["add", "-A"], { cwd: projectPath });
 
@@ -99,7 +104,15 @@ function commitIteration(projectPath: string, cycle: number): boolean {
     { cwd: projectPath }
   );
 
-  return commit.status === 0 || /nothing to commit/i.test(commit.stdout + commit.stderr);
+  const combined = `${commit.stdout ?? ""}\n${commit.stderr ?? ""}`;
+  if (commit.status === 0 || /nothing to commit/i.test(combined)) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    detail: combined.trim() || `git commit exited with ${commit.status}`,
+  };
 }
 
 async function main() {
@@ -126,9 +139,10 @@ async function main() {
     process.exit(2);
   }
 
-  if (!safetyCheckpoint(project.path)) {
+  const baseline = validateBaseline(project.path);
+  if (!baseline.ok) {
     state.status = "error";
-    state.lastError = "Could not create a safe checkpoint for existing changes.";
+    state.lastError = `Baseline validation failed: ${baseline.detail ?? "unknown error"}`;
     writeState(state);
     process.exit(3);
   }
@@ -153,9 +167,10 @@ async function main() {
       process.exit(4);
     }
 
-    if (!commitIteration(project.path, state.cycle)) {
+    const committed = commitIteration(project.path, state.cycle);
+    if (!committed.ok) {
       state.status = "error";
-      state.lastError = "Validation or commit failed after autonomous iteration.";
+      state.lastError = `Validation or commit failed after autonomous iteration: ${committed.detail ?? "unknown error"}`;
       writeState(state);
       process.exit(5);
     }
