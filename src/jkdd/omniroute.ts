@@ -27,6 +27,26 @@ export function getOmniRouteConfig(): OmniRouteConfig {
   };
 }
 
+async function resolveAutoModel(
+  apiKey: string | undefined,
+  baseURL: string,
+  configuredModel?: string
+): Promise<string | undefined> {
+  if (configuredModel) return configuredModel;
+
+  try {
+    const models = await listOmniRouteModels(apiKey, baseURL);
+    return (
+      models.find((model) => model === "gpt-5.6-sol") ??
+      models.find((model) => model.includes("gpt-5.6")) ??
+      models.find((model) => /codex/i.test(model)) ??
+      models[0]
+    );
+  } catch {
+    return undefined;
+  }
+}
+
 export async function checkOmniRoute(): Promise<OmniRouteHealth> {
   const config = getOmniRouteConfig();
 
@@ -45,16 +65,22 @@ export async function checkOmniRoute(): Promise<OmniRouteHealth> {
         reachable: true,
         configured: Boolean(config.apiKey),
         baseURL: config.baseURL,
-        model: config.model,
+        model,
         error: `HTTP ${response.status}`,
       };
     }
+
+    const model = await resolveAutoModel(
+      config.apiKey,
+      config.baseURL,
+      config.model
+    );
 
     return {
       reachable: true,
       configured: Boolean(config.apiKey),
       baseURL: config.baseURL,
-      model: config.model,
+      model,
     };
   } catch (error) {
     return {
@@ -79,9 +105,15 @@ export async function runOmniRoute(
     );
   }
 
-  if (!config.model) {
+  const model = await resolveAutoModel(
+    config.apiKey,
+    config.baseURL,
+    config.model
+  );
+
+  if (!model) {
     throw new Error(
-      "JKDD_OMNIROUTE_MODEL is not configured. Set it to a model or route name exposed by OmniRoute."
+      "OmniRoute did not expose any usable model."
     );
   }
 
