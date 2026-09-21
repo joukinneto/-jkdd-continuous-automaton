@@ -24,11 +24,19 @@ import { printOfficeStatus, startOffice, stopOffice } from "./office.js";
 const args = process.argv.slice(2);
 const command = (args[0] ?? "").toLowerCase();
 
+class ExitSignal extends Error {
+  constructor(public readonly code: number) {
+    super("JKDD_EXIT");
+  }
+}
+
 function finish(ok: boolean, message: string): never {
   console.log("");
-  console.log(message);
-  process.exit(ok ? 0 : 1);
+  if (message) console.log(message);
+  throw new ExitSignal(ok ? 0 : 1);
 }
+
+try {
 
 if (!command) {
   console.log(`
@@ -62,7 +70,7 @@ Exemplos:
   jkdd run jogos-daniel
   jkdd "melhore a tela inicial do jogos-daniel"
 `);
-  process.exit(0);
+  finish(true, "");
 }
 
 if (command === "doctor") {
@@ -256,7 +264,7 @@ const sourceFiles = workspace.files.filter((file) =>
 if (sourceFiles.length === 0) {
   console.log("Execution blocked: no application source files were found.");
   console.log(`Run: jkdd rebuild ${project.key}`);
-  process.exit(2);
+  finish(false, "Execution blocked.");
 }
 
 console.log("Status: routing decision generated.");
@@ -266,7 +274,7 @@ const execution = executeWithCodex(project, task, { effort: "low" });
 printExecutionResult(execution);
 
 if (execution.ok) {
-  process.exit(0);
+  finish(true, "Execution completed.");
 }
 
 console.log("");
@@ -280,4 +288,14 @@ if (!geminiReview.ok) {
   printExecutionResult(claudeReview);
 }
 
-process.exit(1);
+finish(false, "Execution failed.");
+
+
+} catch (error) {
+  if (error instanceof ExitSignal) {
+    process.exitCode = error.code;
+  } else {
+    console.error(error);
+    process.exitCode = 1;
+  }
+}
