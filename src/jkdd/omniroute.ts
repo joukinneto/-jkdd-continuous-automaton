@@ -1,7 +1,7 @@
 import OpenAI from "openai";
-import { spawnSync } from "node:child_process";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { runCommand } from "./process.js";
 
 export interface OmniRouteConfig {
   baseURL: string;
@@ -65,7 +65,7 @@ export async function checkOmniRoute(): Promise<OmniRouteHealth> {
         reachable: true,
         configured: Boolean(config.apiKey),
         baseURL: config.baseURL,
-        model,
+        model: config.model,
         error: `HTTP ${response.status}`,
       };
     }
@@ -123,7 +123,7 @@ export async function runOmniRoute(
   });
 
   const response = await client.chat.completions.create({
-    model: config.model,
+    model,
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
@@ -162,11 +162,7 @@ export async function listOmniRouteModels(
 
 function saveUserEnv(name: string, value: string): boolean {
   if (process.platform === "win32") {
-    const result = spawnSync("setx", [name, value], {
-      encoding: "utf-8",
-      shell: true,
-      stdio: "pipe",
-    });
+    const result = runCommand("setx", [name, value]);
     return result.status === 0;
   }
 
